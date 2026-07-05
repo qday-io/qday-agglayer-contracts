@@ -85,16 +85,32 @@ mkdir -p "$OUTPUT_DIR"
 cp "$PROJECT_ROOT/deployment/v2/deploy_output.json" "$OUTPUT_DIR/"
 cp "$PROJECT_ROOT/deployment/v2/genesis.json" "$OUTPUT_DIR/"
 if ls "$PROJECT_ROOT/deployment/v2/create_rollup_output_"*.json 1> /dev/null 2>&1; then
-    cp "$PROJECT_ROOT/deployment/v2/create_rollup_output_"*.json "$OUTPUT_DIR/create_rollup_output.json"
+    # 4_createRollup.ts writes a new timestamped file each run, so the glob may
+    # match several files. Pick the most recent one and copy it under a stable name.
+    LATEST_ROLLUP_OUTPUT=$(ls -t "$PROJECT_ROOT/deployment/v2/create_rollup_output_"*.json 2>/dev/null | head -n 1)
+    cp "$LATEST_ROLLUP_OUTPUT" "$OUTPUT_DIR/create_rollup_output.json"
 fi
 [ -f "$PROJECT_ROOT/deployment/v2/genesis_sovereign.json" ] && cp "$PROJECT_ROOT/deployment/v2/genesis_sovereign.json" "$OUTPUT_DIR/"
 
 # Save deployment snapshot
 if [ "$NETWORK" = "sepolia" ]; then
-    npm run saveDeployment:sepolia 2>/dev/null || true
+    npm run saveDeployment:sepolia || true
 elif [ "$NETWORK" = "mainnet" ]; then
-    npm run saveDeployment:mainnet 2>/dev/null || true
+    npm run saveDeployment:mainnet || true
 fi
+
+# Clean up intermediate files generated under deployment/v2/ during this run.
+# Outputs are already preserved in $OUTPUT_DIR and the deployments/<network>_<ts>/ snapshot,
+# so the copies in deployment/v2/ are safe to remove. .example templates and source scripts are kept.
+echo "[STEP 9] Cleaning up intermediate files in deployment/v2/..."
+rm -f "$PROJECT_ROOT/deployment/v2/deploy_output.json" \
+      "$PROJECT_ROOT/deployment/v2/deploy_parameters.json" \
+      "$PROJECT_ROOT/deployment/v2/deploy_ongoing.json" \
+      "$PROJECT_ROOT/deployment/v2/genesis.json" \
+      "$PROJECT_ROOT/deployment/v2/genesis_sovereign.json" \
+      "$PROJECT_ROOT/deployment/v2/create_rollup_parameters.json" \
+      "$PROJECT_ROOT/deployment/v2/create_rollup_output_"*.json
+echo "[STEP 9] Cleanup done."
 
 echo ""
 echo "========================================"
