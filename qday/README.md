@@ -7,7 +7,7 @@ Deploy zkRollup (`PolygonZkEVMEtrog` fork12) contracts to an existing L1 node (S
 ```bash
 # 1. Install & configure
 npm install
-cp qday/.env.example .env        # fill in MNEMONIC, INFURA_PROJECT_ID
+cp qday/env.example .env        # fill in MNEMONIC, INFURA_PROJECT_ID, SEQ_PVT_KEY
 vim qday/deploy_parameters.json  # fill in admin/aggregator addresses
 vim qday/create_rollup_parameters.json  # fill in sequencer/chain info
 
@@ -22,12 +22,13 @@ vim qday/create_rollup_parameters.json  # fill in sequencer/chain info
 
 | File | Purpose |
 |------|---------|
-| `.env.example` | Environment variable template |
+| `env.example` | Environment variable template |
 | `deploy_parameters.json` | L1 core contract parameters (salt, admin addresses, POL, verifier) |
 | `create_rollup_parameters.json` | Rollup creation parameters (sequencer, chainID, forkID) |
 | `deploy.sh` | Full deployment script (compile → fund → deploy L1 contracts → create rollup) |
 | `deploy_pol.sh` | Standalone POL token deployment + Sequencer funding |
 | `pre_deploy_check.ts` | Balance check + fund Sequencer/Aggregator (1000 ETH each) |
+| `approve_sequencer_pol.ts` | Authorize rollup contract to spend Sequencer's POL |
 | `usage.md` | Detailed deployment guide |
 | `output/` | Generated after deployment — genesis + contract addresses for zkEVM node |
 
@@ -45,6 +46,8 @@ deploy.sh:
          (Bridge, GlobalExitRoot, AggLayerGateway, RollupManager, Timelock)
   STEP 7  Create zkRollup
   STEP 8  Collect output to qday/output/
+  STEP 9  Clean up intermediate files
+  STEP 10 Approve rollup contract to spend Sequencer's POL
 ```
 
 ## Deployer Address
@@ -83,4 +86,18 @@ After deployment, `qday/output/` contains:
 ```bash
 # Deploy POL token + fund Sequencer only
 ./qday/deploy_pol.sh sepolia
+```
+
+## Sequencer POL Approval
+
+After deployment, the Sequencer must approve the **rollup proxy contract** (not RollupManager) to spend its POL. This is handled automatically by `deploy.sh` STEP 10, or run manually:
+
+```bash
+# Uses SEQ_PVT_KEY from .env, or MNEMONIC index 0
+./qday/approve_sequencer_pol.sh sepolia
+```
+
+Or with `cast`:
+```bash
+cast send <POL_ADDR> "approve(address,uint256)" <ROLLUP_ADDR> 115792089237316195423570985008687907853269984665640564039457584007913129639935
 ```

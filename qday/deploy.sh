@@ -24,7 +24,7 @@ echo "========================================"
 
 # Check .env
 if [ ! -f "$PROJECT_ROOT/.env" ]; then
-    echo "[ERROR] .env file not found. Run: cp qday/.env.example .env and fill in the values"
+    echo "[ERROR] .env file not found. Run: cp qday/env.example .env and fill in the values"
     exit 1
 fi
 
@@ -99,10 +99,14 @@ elif [ "$NETWORK" = "mainnet" ]; then
     npm run saveDeployment:mainnet || true
 fi
 
+# Approve rollup contract to spend Sequencer's POL
+echo "[STEP 9] Approving rollup contract to spend POL (Sequencer → Rollup)..."
+npx hardhat run "$SCRIPT_DIR/approve_sequencer_pol.ts" --network "$NETWORK"
+
 # Clean up intermediate files generated under deployment/v2/ during this run.
 # Outputs are already preserved in $OUTPUT_DIR and the deployments/<network>_<ts>/ snapshot,
 # so the copies in deployment/v2/ are safe to remove. .example templates and source scripts are kept.
-echo "[STEP 9] Cleaning up intermediate files in deployment/v2/..."
+echo "[STEP 10] Cleaning up intermediate files in deployment/v2/..."
 rm -f "$PROJECT_ROOT/deployment/v2/deploy_output.json" \
       "$PROJECT_ROOT/deployment/v2/deploy_parameters.json" \
       "$PROJECT_ROOT/deployment/v2/deploy_ongoing.json" \
@@ -110,7 +114,7 @@ rm -f "$PROJECT_ROOT/deployment/v2/deploy_output.json" \
       "$PROJECT_ROOT/deployment/v2/genesis_sovereign.json" \
       "$PROJECT_ROOT/deployment/v2/create_rollup_parameters.json" \
       "$PROJECT_ROOT/deployment/v2/create_rollup_output_"*.json
-echo "[STEP 9] Cleanup done."
+echo "[STEP 10] Cleanup done."
 
 echo ""
 echo "========================================"

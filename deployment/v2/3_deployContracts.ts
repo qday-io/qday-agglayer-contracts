@@ -344,7 +344,8 @@ async function main() {
     /*
      *Deployment Global exit root manager
      */
-    let polygonZkEVMGlobalExitRoot;
+     let polygonZkEVMGlobalExitRoot;
+    let gerDeploymentBlockNumber;
     const PolygonZkEVMGlobalExitRootFactory = await ethers.getContractFactory("PolygonZkEVMGlobalExitRootV2", deployer);
     if (!ongoingDeployment.polygonZkEVMGlobalExitRoot) {
         for (let i = 0; i < attemptsDeployProxy; i++) {
@@ -370,10 +371,14 @@ async function main() {
         console.log("#######################\n");
         console.log("polygonZkEVMGlobalExitRoot deployed to:", polygonZkEVMGlobalExitRoot?.target);
 
+        gerDeploymentBlockNumber = (await polygonZkEVMGlobalExitRoot?.deploymentTransaction().wait()).blockNumber;
+        console.log("polygonZkEVMGlobalExitRoot deployed at block:", gerDeploymentBlockNumber);
+
         // save an ongoing deployment
         ongoingDeployment.polygonZkEVMGlobalExitRoot = polygonZkEVMGlobalExitRoot?.target;
         fs.writeFileSync(pathOngoingDeploymentJson, JSON.stringify(ongoingDeployment, null, 1));
     } else {
+        gerDeploymentBlockNumber = 0;
         // sanity check
         expect(precalculateGlobalExitRootAddress).to.be.equal(ongoingDeployment.polygonZkEVMGlobalExitRoot);
 
@@ -635,6 +640,7 @@ async function main() {
         deployerAddress: deployer.address,
         timelockContractAddress: timelockContract.target,
         deploymentRollupManagerBlockNumber: deploymentBlockNumber,
+        deploymentGlobalExitRootBlockNumber: gerDeploymentBlockNumber,
         upgradeToULxLyBlockNumber: deploymentBlockNumber,
         admin,
         trustedAggregator,

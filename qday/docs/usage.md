@@ -107,7 +107,7 @@ console.log('Deployer:', w.address);
 ### 4.2 配置环境变量
 
 ```bash
-cp qday/.env.example .env
+cp qday/env.example .env
 ```
 
 编辑 `.env`：

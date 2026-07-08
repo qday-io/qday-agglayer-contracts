@@ -21,7 +21,7 @@ echo "  Network: $NETWORK"
 echo "========================================"
 
 if [ ! -f "$PROJECT_ROOT/.env" ]; then
-    echo "[ERROR] .env file not found. Run: cp qday/.env.example .env and fill in the values"
+    echo "[ERROR] .env file not found. Run: cp qday/env.example .env and fill in the values"
     exit 1
 fi
 
