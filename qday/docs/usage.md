@@ -122,10 +122,22 @@ cp qday/env.example .env
 Edit `.env`:
 
 ```env
+# [REQUIRED]
 MNEMONIC="your twelve word mnemonic phrase here"
-INFURA_PROJECT_ID="your-infura-project-id"
-ETHERSCAN_API_KEY="your-etherscan-api-key"
+SEPOLIA_PROVIDER="https://sepolia.infura.io/v3/xxx"
+MAINNET_PROVIDER="https://mainnet.infura.io/v3/xxx"
+
+# [OPTIONAL] Sequencer private key (uses MNEMONIC index 0 if empty)
+SEQ_PVT_KEY=""
+
+# [OPTIONAL] Fallback when SEPOLIA_PROVIDER / MAINNET_PROVIDER are unset
+INFURA_PROJECT_ID=""
+
+# [OPTIONAL] Only needed for contract verification
+ETHERSCAN_API_KEY=""
 ```
+
+> `INFURA_PROJECT_ID` is only used as a fallback RPC URL builder in Hardhat when `SEPOLIA_PROVIDER` / `MAINNET_PROVIDER` are empty. `ETHERSCAN_API_KEY` is only required if you run contract verification.
 
 ---
 
@@ -225,6 +237,8 @@ cat qday/output/create_rollup_output.json | python3 -m json.tool
 ---
 
 ## 8. Contract Verification
+
+Requires `ETHERSCAN_API_KEY` in `.env`.
 
 ```bash
 # Sepolia

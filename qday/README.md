@@ -7,7 +7,7 @@ Deploy zkRollup (`PolygonZkEVMEtrog` fork12) contracts to an existing L1 node (S
 ```bash
 # 1. Install & configure
 npm install
-cp qday/env.example .env        # fill in MNEMONIC, INFURA_PROJECT_ID, SEQ_PVT_KEY
+cp qday/env.example .env        # fill in MNEMONIC, SEPOLIA_PROVIDER / MAINNET_PROVIDER
 vim qday/deploy_parameters.json  # fill in admin/aggregator addresses
 vim qday/create_rollup_parameters.json  # fill in sequencer/chain info
 
