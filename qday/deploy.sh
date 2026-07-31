@@ -2,6 +2,30 @@
 # ============================================
 # QDAY zkRollup contract deployment script
 # Targets: Sepolia testnet / Ethereum mainnet
+# Consensus: PolygonZkEVMEtrog (fork12)
+#
+# Usage:
+#   ./qday/deploy.sh [sepolia|mainnet]
+#   ./qday/deploy.sh              # default: sepolia
+#   ./qday/deploy.sh sepolia      # Sepolia (auto-deploys test POL)
+#   ./qday/deploy.sh mainnet      # Mainnet (polTokenAddress required)
+#
+# Prerequisites:
+#   - Copy qday/env.example → .env and fill required vars
+#   - Edit qday/deploy_parameters.json / create_rollup_parameters.json
+#
+# Steps:
+#   0. Compile contracts
+#   1. Copy parameter files into deployment/v2/
+#   2. Check deployer balance + fund Sequencer/Aggregator (1000 ETH each)
+#   3. Deploy test POL (Sepolia) or validate polTokenAddress (Mainnet)
+#   4. Generate genesis.json
+#   5. Deploy PolygonZkEVMDeployer
+#   6. Deploy L1 core contracts (Bridge/GER/AggLayerGateway/RollupManager/Timelock)
+#   7. Create zkRollup
+#   8. Collect output → qday/output/
+#   9. Approve rollup contract to spend Sequencer's POL
+#  10. Clean up intermediate files in deployment/v2/
 # ============================================
 set -e
 

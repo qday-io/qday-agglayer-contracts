@@ -1,3 +1,40 @@
+/**
+ * QDAY pre-deployment check & funding script.
+ *
+ * Usage:
+ *   npx hardhat run qday/pre_deploy_check.ts --network sepolia
+ *   npx hardhat run qday/pre_deploy_check.ts --network mainnet
+ *
+ * Called automatically by deploy.sh STEP 2. Can also be run standalone.
+ *
+ * Prerequisites:
+ *   - .env with MNEMONIC (or deployerPvtKey in deploy_parameters.json)
+ *   - SEPOLIA_PROVIDER / MAINNET_PROVIDER for the target network
+ *   - qday/deploy_parameters.json and qday/create_rollup_parameters.json filled in
+ *
+ * Steps:
+ *   1. Resolve deployer
+ *      - Prefer deploy_parameters.json → deployerPvtKey
+ *      - Else derive from MNEMONIC at m/44'/60'/0'/0/0
+ *
+ *   2. Validate addresses
+ *      - trustedSequencer from create_rollup_parameters.json
+ *      - trustedAggregator from deploy_parameters.json
+ *
+ *   3. Check deployer ETH balance
+ *      - Require >= 2000 ETH (1000 Sequencer + 1000 Aggregator)
+ *      - Does not include gas overhead for later deploy steps
+ *
+ *   4. Check deployer POL balance (only if polTokenAddress is set)
+ *      - Mainnet: require >= 100,000 POL
+ *      - Sepolia: usually empty; POL is deployed later by prepareTestnet
+ *
+ *   5. Fund accounts
+ *      - Sequencer: 1000 ETH
+ *      - Aggregator: 1000 ETH
+ *      - Sequencer: 100,000 POL (only when polTokenAddress is set)
+ */
+
 /* eslint-disable no-console */
 import path = require("path");
 import * as dotenv from "dotenv";
