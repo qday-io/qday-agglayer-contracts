@@ -81,25 +81,19 @@ On mainnet, Sequencer/Aggregator must be **prepared in advance**:
 
 ## 3. Deployer Address (Important)
 
-Gas for deployment comes from the **deployer address**. The source is determined by the following priority:
+QDAY is private-key only. Gas for deployment comes from the **deployer address** derived from `deployerPvtKey`. Fill the **same** key in both files (manually; the scripts do not copy one into the other):
 
-| Priority | Source | Description |
-|----------|--------|-------------|
-| 1 | `qday/deploy_parameters.json` → `deployerPvtKey` | If a private key is provided, this becomes the deployer |
-| 2 | `.env` → `MNEMONIC`, first account | Derivation path `m/44'/60'/0'/0/0` |
-| 3 | Hardhat default Signer | Local hardhat network only |
+| File | Field |
+|------|--------|
+| `qday/deploy_parameters.json` | `deployerPvtKey` |
+| `qday/create_rollup_parameters.json` | `deployerPvtKey` |
+
+`deploy.sh` / `deploy_pol.sh` / `pre_deploy_check.ts` verify both keys are present, parseable, and derive the same address. Any failure exits immediately.
 
 **Verify the deployer address**:
 
 ```bash
-source .env 2>/dev/null
-npx hardhat console --network sepolia <<< "
-const w = ethers.HDNodeWallet.fromMnemonic(
-  ethers.Mnemonic.fromPhrase(process.env.MNEMONIC),
-  'm/44'/60'/0'/0/0'
-);
-console.log('Deployer:', w.address);
-"
+node -e "console.log(new (require('ethers').Wallet)('<deployerPvtKey>').address)"
 ```
 
 > :warning: **Confirm before deployment**: the deployer address must have sufficient ETH on the target network to cover gas fees. All L1 contract deployments, POL token deployments, and account funding operations will originate from this address.
@@ -122,13 +116,12 @@ cp qday/env.example .env
 Edit `.env`:
 
 ```env
-# [REQUIRED]
-MNEMONIC="your twelve word mnemonic phrase here"
+# [REQUIRED] Sequencer private key (must match trustedSequencer)
+SEQ_PVT_KEY=""
+
+# [REQUIRED] L1 RPC URLs
 SEPOLIA_PROVIDER="https://sepolia.infura.io/v3/xxx"
 MAINNET_PROVIDER="https://mainnet.infura.io/v3/xxx"
-
-# [OPTIONAL] Sequencer private key (uses MNEMONIC index 0 if empty)
-SEQ_PVT_KEY=""
 
 # [OPTIONAL] Fallback when SEPOLIA_PROVIDER / MAINNET_PROVIDER are unset
 INFURA_PROJECT_ID=""
@@ -137,11 +130,21 @@ INFURA_PROJECT_ID=""
 ETHERSCAN_API_KEY=""
 ```
 
+Also fill `deployerPvtKey` in **both** `qday/deploy_parameters.json` and `qday/create_rollup_parameters.json` (same key).
+
 > `INFURA_PROJECT_ID` is only used as a fallback RPC URL builder in Hardhat when `SEPOLIA_PROVIDER` / `MAINNET_PROVIDER` are empty. `ETHERSCAN_API_KEY` is only required if you run contract verification.
 
 ---
 
 ## 5. Parameter Configuration
+
+How to fill the tables below:
+
+| Fill | Meaning |
+|------|---------|
+| **Manual** | Write before `deploy.sh`. Scripts do not generate this value. |
+| **Auto** | Leave empty. The deploy script writes it. |
+| **Pre-set** | Already in the QDAY template. Do not change unless you know why. |
 
 ### 5.1 deploy_parameters.json
 
@@ -151,16 +154,27 @@ vim qday/deploy_parameters.json
 
 | Field | Sepolia | Mainnet | Description |
 |-------|---------|---------|-------------|
-| `salt` | Custom | Custom | Create2 salt |
-| `polTokenAddress` | **Leave empty** | **Required** | Deployed automatically on Sepolia; must be filled manually on Mainnet |
-| `initialZkEVMDeployerOwner` | Fill in | Fill in | Deployer factory owner |
-| `admin` | Fill in | Fill in | Super admin |
-| `trustedAggregator` | Fill in | Fill in | Trusted aggregator |
-| `emergencyCouncilAddress` | Fill in | Fill in | Emergency council |
-| `timelockAdminAddress` | Fill in | Fill in | Timelock admin (multisig recommended) |
-| `realVerifier` | `true` | `true` | Use real verifier for production |
-| `ppVKey` | Fill in | Fill in | Pessimistic proof verification key |
-| `ppVKeySelector` | `0x00000001` | `0x00000001` | Pessimistic proof selector |
+| `deployerPvtKey` | **Manual** | **Manual** | Deployer private key (must match `create_rollup_parameters.json`) |
+| `salt` | **Manual** | **Manual** | Create2 salt |
+| `polTokenAddress` | **Auto** (leave empty) | **Manual** | Sepolia: `prepareTestnet` deploys POL and writes the address. Mainnet: set the real POL token. |
+| `zkEVMDeployerAddress` | **Auto** (leave empty) | **Auto** (leave empty) | Written after `PolygonZkEVMDeployer` is deployed |
+| `initialZkEVMDeployerOwner` | **Manual** | **Manual** | Deployer factory owner |
+| `admin` | **Manual** | **Manual** | Super admin |
+| `trustedAggregator` | **Manual** | **Manual** | Trusted aggregator address (funded with 1000 ETH) |
+| `emergencyCouncilAddress` | **Manual** | **Manual** | Emergency council |
+| `timelockAdminAddress` | **Manual** | **Manual** | Timelock admin (multisig recommended) |
+| `realVerifier` | **Manual** (`true` in production) | **Manual** (`true`) | Use real verifier for production |
+| `ppVKey` | **Pre-set** `0xac51…959f` | **Pre-set** `0xac51…959f` | AggLayerGateway pessimistic VKey. QDAY Etrog does not use pessimistic proofs; keep the template default. Must not be `0x00…00` (Gateway `initialize` rejects zero). |
+| `ppVKeySelector` | **Pre-set** `0x00000001` | **Pre-set** `0x00000001` | 4-byte route id for `ppVKey`. Keep `0x00000001`. Must not be `0x00000000`. |
+
+QDAY does not run AggLayer pessimistic. `ppVKey` / `ppVKeySelector` are still required to deploy `AggLayerGateway`, but they are unused by Etrog sequencing. Use the template defaults:
+
+```text
+ppVKey:         0xac51a6a2e513d02e4f39ea51d4d133cec200b940805f1054eabbb6d6412c959f
+ppVKeySelector: 0x00000001
+```
+
+If you later attach a real pessimistic route, replace these with the official VKey. Do not leave them empty.
 
 ### 5.2 create_rollup_parameters.json
 
@@ -168,15 +182,28 @@ vim qday/deploy_parameters.json
 vim qday/create_rollup_parameters.json
 ```
 
-| Field | Description |
-|-------|-------------|
-| `trustedSequencerURL` | Sequencer RPC URL |
-| `networkName` | L2 network name |
-| `trustedSequencer` | Trusted sequencer address |
-| `chainID` | L2 chain ID (must be unique) |
-| `adminZkEVM` | L2 admin |
-| `forkID` | `12` (do not modify) |
-| `gasTokenAddress` | Gas token address (`""` = ETH) |
+| Field | Sepolia | Mainnet | Description |
+|-------|---------|---------|-------------|
+| `deployerPvtKey` | **Manual** | **Manual** | Deployer private key (must match `deploy_parameters.json`) |
+| `trustedSequencerURL` | **Manual** | **Manual** | Sequencer RPC URL (written on-chain; not generated) |
+| `networkName` | **Manual** | **Manual** | L2 network name |
+| `description` | **Manual** | **Manual** | Rollup type description |
+| `trustedSequencer` | **Manual** | **Manual** | Trusted sequencer address (`SEQ_PVT_KEY` must match this; funded with 1000 ETH) |
+| `chainID` | **Manual** | **Manual** | L2 chain ID (must be unique) |
+| `adminZkEVM` | **Manual** | **Manual** | L2 admin |
+| `forkID` | **Pre-set** `12` | **Pre-set** `12` | Etrog fork ID |
+| `consensusContract` | **Pre-set** `PolygonZkEVMEtrog` | **Pre-set** `PolygonZkEVMEtrog` | Consensus contract name |
+| `gasTokenAddress` | **Manual** (leave empty = ETH) | **Manual** (leave empty = ETH) | Not auto-filled unless set to `"deploy"` (deploys a test ERC20) |
+| `realVerifier` | **Manual** (`true` in production) | **Manual** (`true`) | Use real verifier for production |
+| `programVKey` | **Pre-set** `0x00…00` | **Pre-set** `0x00…00` | Rollup-type ZK program hash (SP1 / pessimistic). For `PolygonZkEVMEtrog` it **must** be `bytes32(0)`. A non-zero value fails create-rollup with `programVKey should be 0x for PolygonZkEVMEtrog`. |
+
+QDAY is Etrog-only. Keep `programVKey` as the template default (do not change):
+
+```text
+0x0000000000000000000000000000000000000000000000000000000000000000
+```
+
+This is a different key from `ppVKey`. `programVKey` is registered on this rollup type in RollupManager; `ppVKey` is only the Gateway placeholder described in 5.1.
 
 ---
 

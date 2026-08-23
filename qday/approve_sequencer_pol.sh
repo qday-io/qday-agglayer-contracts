@@ -22,7 +22,7 @@
 #   - Requires qday/output/deploy_output.json and create_rollup_output.json
 #
 # Signer:
-#   SEQ_PVT_KEY from .env, or MNEMONIC index 0 if SEQ_PVT_KEY is empty
+#   SEQ_PVT_KEY from .env (required; must match trustedSequencer)
 # ============================================
 set -e
 
@@ -33,6 +33,21 @@ NETWORK="${1:-sepolia}"
 if [ "$NETWORK" != "sepolia" ] && [ "$NETWORK" != "mainnet" ]; then
     echo "Usage: ./approve_sequencer_pol.sh <network>"
     echo "  sepolia | mainnet"
+    exit 1
+fi
+
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
+    echo "[ERROR] .env file not found. Run: cp qday/env.example .env and fill in the values"
+    exit 1
+fi
+
+set -a
+# shellcheck disable=SC1091
+source "$PROJECT_ROOT/.env"
+set +a
+
+if [ -z "${SEQ_PVT_KEY:-}" ]; then
+    echo "[ERROR] .env → SEQ_PVT_KEY is missing. Set the Sequencer private key."
     exit 1
 fi
 

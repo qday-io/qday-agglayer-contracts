@@ -7,9 +7,9 @@ Deploy zkRollup (`PolygonZkEVMEtrog` fork12) contracts to an existing L1 node (S
 ```bash
 # 1. Install & configure
 npm install
-cp qday/env.example .env        # fill in MNEMONIC, SEPOLIA_PROVIDER / MAINNET_PROVIDER
-vim qday/deploy_parameters.json  # fill in admin/aggregator addresses
-vim qday/create_rollup_parameters.json  # fill in sequencer/chain info
+cp qday/env.example .env        # fill in SEQ_PVT_KEY, SEPOLIA_PROVIDER / MAINNET_PROVIDER
+vim qday/deploy_parameters.json  # fill in deployerPvtKey + admin/aggregator addresses
+vim qday/create_rollup_parameters.json  # fill in deployerPvtKey + sequencer/chain info
 
 # 2. Deploy to Sepolia
 ./qday/deploy.sh sepolia
@@ -25,6 +25,7 @@ vim qday/create_rollup_parameters.json  # fill in sequencer/chain info
 | `env.example` | Environment variable template |
 | `deploy_parameters.json` | L1 core contract parameters (salt, admin addresses, POL, verifier) |
 | `create_rollup_parameters.json` | Rollup creation parameters (sequencer, chainID, forkID) |
+| `validate_deployer_keys.js` | Fail-fast check: both JSON files have the same `deployerPvtKey` |
 | `deploy.sh` | Full deployment script (compile → fund → deploy L1 contracts → create rollup) |
 | `deploy_pol.sh` | Standalone POL token deployment + Sequencer funding |
 | `pre_deploy_check.ts` | Balance check + fund Sequencer/Aggregator (1000 ETH each) |
@@ -52,9 +53,11 @@ deploy.sh:
 
 ## Deployer Address
 
-Determined by priority:
+QDAY is private-key only. Fill `deployerPvtKey` in **both**:
 1. `deploy_parameters.json` → `deployerPvtKey`
-2. `.env` → `MNEMONIC` path `m/44'/60'/0'/0/0`
+2. `create_rollup_parameters.json` → `deployerPvtKey`
+
+The two keys must be the same (same address). Deployment exits if either is missing or they differ.
 
 The deployer account must hold enough ETH for gas + funding.
 
@@ -93,7 +96,7 @@ After deployment, `qday/output/` contains:
 After deployment, the Sequencer must approve the **rollup proxy contract** (not RollupManager) to spend its POL. This is handled automatically by `deploy.sh` STEP 10, or run manually:
 
 ```bash
-# Uses SEQ_PVT_KEY from .env, or MNEMONIC index 0
+# Requires SEQ_PVT_KEY in .env (must match trustedSequencer)
 ./qday/approve_sequencer_pol.sh sepolia
 ```
 

@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import path = require("path");
-import fs = require("fs");
 import * as dotenv from "dotenv";
 dotenv.config({path: path.resolve(__dirname, "../.env")});
 import {ethers} from "hardhat";
@@ -12,15 +11,26 @@ const createRollupParams = require(path.join(__dirname, "create_rollup_parameter
 async function main() {
     const currentProvider = ethers.provider;
 
-    // Sequencer: use SEQ_PVT_KEY from env, then try MNEMONIC index 0
+    if (!process.env.SEQ_PVT_KEY || process.env.SEQ_PVT_KEY.trim() === "") {
+        throw new Error(".env → SEQ_PVT_KEY is missing. Set the Sequencer private key.");
+    }
+
     let sequencer;
-    if (process.env.SEQ_PVT_KEY && process.env.SEQ_PVT_KEY !== "") {
-        sequencer = new ethers.Wallet(process.env.SEQ_PVT_KEY, currentProvider);
-    } else {
-        sequencer = ethers.HDNodeWallet.fromMnemonic(
-            ethers.Mnemonic.fromPhrase(process.env.MNEMONIC || ""),
-            "m/44'/60'/0'/0/0"
-        ).connect(currentProvider);
+    try {
+        sequencer = new ethers.Wallet(process.env.SEQ_PVT_KEY.trim(), currentProvider);
+    } catch (_e) {
+        throw new Error(".env → SEQ_PVT_KEY is not a valid private key.");
+    }
+
+    const expectedSeq = createRollupParams.trustedSequencer;
+    if (!expectedSeq || !ethers.isAddress(expectedSeq)) {
+        throw new Error("trustedSequencer address is invalid or missing in create_rollup_parameters.json");
+    }
+    if (sequencer.address.toLowerCase() !== expectedSeq.toLowerCase()) {
+        throw new Error(
+            `SEQ_PVT_KEY address ${sequencer.address} does not match ` +
+                `create_rollup_parameters.json → trustedSequencer ${expectedSeq}`
+        );
     }
     console.log(`Sequencer address: ${sequencer.address}`);
 

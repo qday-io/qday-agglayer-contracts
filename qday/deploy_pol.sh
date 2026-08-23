@@ -25,6 +25,9 @@ if [ ! -f "$PROJECT_ROOT/.env" ]; then
     exit 1
 fi
 
+cd "$PROJECT_ROOT"
+node "$SCRIPT_DIR/validate_deployer_keys.js"
+
 # Compile
 echo "[STEP 0] Compiling contracts..."
 cd "$PROJECT_ROOT"

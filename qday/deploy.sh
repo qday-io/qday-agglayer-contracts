@@ -11,8 +11,9 @@
 #   ./qday/deploy.sh mainnet      # Mainnet (polTokenAddress required)
 #
 # Prerequisites:
-#   - Copy qday/env.example → .env and fill required vars
-#   - Edit qday/deploy_parameters.json / create_rollup_parameters.json
+#   - Copy qday/env.example → .env and fill SEQ_PVT_KEY + RPC URLs
+#   - Fill deployerPvtKey in BOTH qday/deploy_parameters.json and
+#     qday/create_rollup_parameters.json (same Deployer key, manual)
 #
 # Steps:
 #   0. Compile contracts
@@ -51,6 +52,19 @@ if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo "[ERROR] .env file not found. Run: cp qday/env.example .env and fill in the values"
     exit 1
 fi
+
+set -a
+# shellcheck disable=SC1091
+source "$PROJECT_ROOT/.env"
+set +a
+
+if [ -z "${SEQ_PVT_KEY:-}" ]; then
+    echo "[ERROR] .env → SEQ_PVT_KEY is missing. Set the Sequencer private key."
+    exit 1
+fi
+
+cd "$PROJECT_ROOT"
+node "$SCRIPT_DIR/validate_deployer_keys.js"
 
 # Compile contracts
 echo "[STEP 0] Compiling contracts..."

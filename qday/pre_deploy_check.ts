@@ -8,14 +8,12 @@
  * Called automatically by deploy.sh STEP 2. Can also be run standalone.
  *
  * Prerequisites:
- *   - .env with MNEMONIC (or deployerPvtKey in deploy_parameters.json)
+ *   - deployerPvtKey in BOTH deploy_parameters.json and create_rollup_parameters.json
+ *     (same key, filled in manually)
  *   - SEPOLIA_PROVIDER / MAINNET_PROVIDER for the target network
- *   - qday/deploy_parameters.json and qday/create_rollup_parameters.json filled in
  *
  * Steps:
- *   1. Resolve deployer
- *      - Prefer deploy_parameters.json → deployerPvtKey
- *      - Else derive from MNEMONIC at m/44'/60'/0'/0/0
+ *   1. Resolve deployer from deployerPvtKey (both files must match)
  *
  *   2. Validate addresses
  *      - trustedSequencer from create_rollup_parameters.json
@@ -46,15 +44,35 @@ const createRollupParams = require(path.join(__dirname, "create_rollup_parameter
 const ETH_FUND = ethers.parseEther("1000");
 const POL_FUND = ethers.parseEther("100000");
 
+function walletFromKey(key: unknown, file: string) {
+    if (key === undefined || key === null || String(key).trim() === "") {
+        throw new Error(`${file} → deployerPvtKey is missing. Fill it in manually.`);
+    }
+    try {
+        return new ethers.Wallet(String(key).trim());
+    } catch (_e) {
+        throw new Error(`${file} → deployerPvtKey is not a valid private key.`);
+    }
+}
+
 async function main() {
     const currentProvider = ethers.provider;
 
-    const deployer = deployParams.deployerPvtKey
-        ? new ethers.Wallet(deployParams.deployerPvtKey, currentProvider)
-        : ethers.HDNodeWallet.fromMnemonic(
-              ethers.Mnemonic.fromPhrase(process.env.MNEMONIC || ""),
-              "m/44'/60'/0'/0/0"
-          ).connect(currentProvider);
+    const deployWallet = walletFromKey(deployParams.deployerPvtKey, "qday/deploy_parameters.json");
+    const createWallet = walletFromKey(
+        createRollupParams.deployerPvtKey,
+        "qday/create_rollup_parameters.json"
+    );
+    if (deployWallet.address.toLowerCase() !== createWallet.address.toLowerCase()) {
+        throw new Error(
+            "deployerPvtKey addresses differ: " +
+                `deploy_parameters.json → ${deployWallet.address}, ` +
+                `create_rollup_parameters.json → ${createWallet.address}. ` +
+                "Both files must use the same Deployer key."
+        );
+    }
+
+    const deployer = deployWallet.connect(currentProvider);
 
     const deployerAddr = deployer.address;
     console.log(`[CHECK] Deployer: ${deployerAddr}`);
