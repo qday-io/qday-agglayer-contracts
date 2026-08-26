@@ -97,9 +97,10 @@ elif [ "$NETWORK" = "mainnet" ]; then
     echo "[STEP 3] Mainnet mode: POL token address = $POL_ADDR (skipping auto-deploy)"
 fi
 
-# Generate Genesis
+# Generate Genesis (in-memory Hardhat simulation — not L1).
+# --test forces Hardhat's default mnemonic so genesis does not depend on .env MNEMONIC.
 echo "[STEP 4] Generating Genesis..."
-npx ts-node "$PROJECT_ROOT/deployment/v2/1_createGenesis.ts"
+npx ts-node "$PROJECT_ROOT/deployment/v2/1_createGenesis.ts" --test
 
 # Deploy ZkEVMDeployer
 echo "[STEP 5] Deploying PolygonZkEVMDeployer..."

@@ -295,8 +295,8 @@ npx hardhat run qday/pre_deploy_check.ts --network sepolia
 # Step 3: Prepare testnet (deploy POL + fund Sequencer 100,000 POL)
 npx hardhat run deployment/testnet/prepareTestnet.ts --network sepolia
 
-# Step 4: Generate Genesis
-npx ts-node deployment/v2/1_createGenesis.ts
+# Step 4: Generate Genesis (in-memory Hardhat; --test uses the default mnemonic)
+npx ts-node deployment/v2/1_createGenesis.ts --test
 
 # Step 5: Deploy ZkEVMDeployer
 npx hardhat run deployment/v2/2_deployPolygonZKEVMDeployer.ts --network sepolia
