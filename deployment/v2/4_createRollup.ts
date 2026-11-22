@@ -359,11 +359,23 @@ async function main() {
                 verifierContract = await VerifierRollup.deploy();
                 await verifierContract.waitForDeployment();
             }
-        } else {
+        } else if (consensusContract == "PolygonPessimisticConsensus") {
+            // QdayVerifier only implements the Etrog Fflonk interface.
             verifierName = "VerifierRollupHelperMock";
             const VerifierRollupHelperFactory = await ethers.getContractFactory(verifierName, deployer);
             verifierContract = await VerifierRollupHelperFactory.deploy();
             await verifierContract.waitForDeployment();
+        } else {
+            verifierName = "QdayVerifier";
+            const aggregatorAddress = deployOutput.trustedAggregator;
+            if (!ethers.isAddress(aggregatorAddress) || aggregatorAddress === ethers.ZeroAddress) {
+                throw new Error("deploy_output.json is missing trustedAggregator, required to deploy QdayVerifier");
+            }
+            const QdayVerifierFactory = await ethers.getContractFactory(verifierName, deployer);
+            verifierContract = await QdayVerifierFactory.deploy(aggregatorAddress);
+            await verifierContract.waitForDeployment();
+            expect(await verifierContract.getFunction("aggregator")()).to.equal(aggregatorAddress);
+            console.log("QdayVerifier aggregator:", aggregatorAddress);
         }
 
         verifierAddress = verifierContract.target;
@@ -377,6 +389,7 @@ async function main() {
         console.log("#######################\n");
         console.log("Verifier name:", verifierName);
         console.log("Verifier deployed to:", verifierAddress);
+        outputJson.verifierName = verifierName;
 
         if (consensusContract == "PolygonPessimisticConsensus") {
             rollupVerifierType = 1;
